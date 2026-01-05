@@ -7,8 +7,9 @@ I am using a Raspberry Pi 02W, Waveshare V4, and Pisugar 3. More scripts may req
 ## Pipper Installation
 1. **Don't.** *Its not finished.*  
 2. Install waveshare stuff. I cloned the repo [from Waveshare](https://github.com/waveshareteam/e-Paper) and ran the install script for python.  
-3. Copy all the files and change paths to suit your needs.  
-4. Run the launcher?  
+3. Copy all the files and change paths to suit your needs.
+4. `mkfifo` where you want the fifo pipe.
+5. Run the launcher?  
 
 ## Make an app
 1. Create the SH file in the scripts directory.
@@ -21,4 +22,3 @@ I am using a Raspberry Pi 02W, Waveshare V4, and Pisugar 3. More scripts may req
 - Web UI.  
 - BadUSB.  
 - SDR sniffer.  
-
