@@ -18,7 +18,7 @@ I am using a Raspberry Pi 02W, Waveshare V4, and Pisugar 3. More scripts may req
 3. Congrats, you're done. Wow.
 
 ### TODO:
-- Make a better launcher that doesn't need full refreshes.  
+- Make the full refresh for the UI work better.  
 - Make an install script to void all that crap.  
 - Web UI.  
 - BadUSB.  

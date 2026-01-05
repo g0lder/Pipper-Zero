@@ -18,11 +18,10 @@ except Exception:
     pass
 os.mkfifo(FIFO_PATH,0o666)
 
-VISIBLE_ITEMS = 3
+VISIBLE_ITEMS = 5
 CENTER_SCALE = 1.0
 SIDE_SCALE = 0.6
 SQUIRCLE_SIZE = (100, 100)
-PARTIAL_REFRESH_LIMIT = 3
 IDLE_TIMEOUT = 30  # seconds
 
 # ------------------------
@@ -47,35 +46,60 @@ def load_logo(script_name):
     img.thumbnail(MAX_LOGO_SIZE, Image.LANCZOS)
     return img
 
+GRID_COLS = 3
+GRID_ROWS = 2
+ITEMS_PER_PAGE = GRID_COLS * GRID_ROWS
+CELL_PADDING = 5  # padding inside each grid cell
 
-def draw_carousel(epd, scripts, selected_index):
+def draw_grid(epd, scripts, selected_index):
     height, width = epd.width, epd.height
     display = Image.new("1", (width, height), 255)
     draw = ImageDraw.Draw(display)
 
-    start_index = max(0, selected_index - VISIBLE_ITEMS//2)
-    end_index = min(len(scripts), start_index + VISIBLE_ITEMS)
-    items = scripts[start_index:end_index]
+    current_page = selected_index // ITEMS_PER_PAGE
+    page_start = current_page * ITEMS_PER_PAGE
+    page_end = min(len(scripts), page_start + ITEMS_PER_PAGE)
 
-    # horizontal spacing
-    x_spacing = width // VISIBLE_ITEMS
-    y_center = height // 2
-    for idx, script in enumerate(items):
-        x_center = x_spacing * idx + x_spacing // 2
+    cell_w = width // GRID_COLS
+    cell_h = height // GRID_ROWS
+
+    for page_offset, script in enumerate(scripts[page_start:page_end]):
+        global_index = page_start + page_offset
+
+        row = page_offset // GRID_COLS
+        col = page_offset % GRID_COLS
+
+        x_center = col * cell_w + cell_w // 2
+        y_center = row * cell_h + cell_h // 2
 
         logo = load_logo(script.stem)
-        scale = CENTER_SCALE if start_index + idx == selected_index else SIDE_SCALE
-        logo_w, logo_h = logo.size
-        logo = logo.resize((int(logo_w*scale), int(logo_h*scale)))
+
+        # scale logo to fit cell with padding
+        max_w = cell_w - 2 * CELL_PADDING
+        max_h = cell_h - 2 * CELL_PADDING
+        logo.thumbnail((max_w, max_h), Image.LANCZOS)
+
         logo_w, logo_h = logo.size
 
-        display.paste(logo, (x_center - logo_w//2, y_center - logo_h//2))
+        display.paste(
+            logo,
+            (x_center - logo_w // 2, y_center - logo_h // 2)
+        )
 
-        if start_index + idx == selected_index:
-            draw.rectangle([x_center - logo_w//2 - 2, y_center - logo_h//2 - 2,
-                            x_center + logo_w//2 + 2, y_center + logo_h//2 + 2], outline=0)
+        if global_index == selected_index:
+            draw.rectangle(
+                [
+                    x_center - logo_w // 2 - 3,
+                    y_center - logo_h // 2 - 3,
+                    x_center + logo_w // 2 + 3,
+                    y_center + logo_h // 2 + 3,
+                ],
+                outline=0
+            )
 
     return display
+
+
 
 # ------------------------
 # Main
@@ -89,12 +113,14 @@ def main():
     if not scripts:
         print("No scripts found!")
         return
-
+    idle = False
     selected_index = 0
     partial_count = 0
     last_display = None
     last_activity = time.time()
-    img = draw_carousel(epd, scripts, selected_index)
+    img = draw_grid(epd, scripts, selected_index)
+    time.sleep(0.2)
+    epd.Clear()
     epd.display(epd.getbuffer(img))
     # open FIFO
     with open(FIFO_PATH, "r") as fifo:
@@ -103,6 +129,7 @@ def main():
             if time.time() - last_activity > IDLE_TIMEOUT:
                 epd.sleep()
                 print("Display sleeping due to inactivity.")
+                idle = True
 
             cmd = fifo.readline().strip()
             if not cmd:
@@ -112,27 +139,35 @@ def main():
             last_activity = time.time()
             changed = False
 
+
+            if cmd and idle==True:
+                epd.init()
+                img = draw_grid(epd, scripts, selected_index)
+                epd.Clear()
+                epd.display(epd.getbuffer(img))
+                idle=False
             if cmd == "triggerOne":
-                if selected_index > 0:
-                    selected_index -= 1
+                if selected_index < len(scripts) -1:
+                    old_index=selected_index
+                    selected_index += 1
                     changed = True
             elif cmd == "triggerTwo":
-                if selected_index < len(scripts) - 1:
-                    selected_index += 1
+                if selected_index > 0:
+                    old_index=selected_index
+                    selected_index -= 1
                     changed = True
             elif cmd == "triggerThree":
                  epd.Clear()
                  epd.sleep()
                  os.execlp("bash", "bash", scripts[selected_index])
             if changed:
-                img = draw_carousel(epd, scripts, selected_index)
+                img = draw_grid(epd, scripts, selected_index)
                 if img != last_display:
-                    if partial_count < PARTIAL_REFRESH_LIMIT:
+                    if (old_index // ITEMS_PER_PAGE == selected_index // ITEMS_PER_PAGE) and (abs(old_index - selected_index) == 1) and ((old_index % ITEMS_PER_PAGE == 0) or (selected_index % ITEMS_PER_PAGE == 0)) and not (selected_index or old_index == 0):
+                        epd.Clear()
                         epd.display(epd.getbuffer(img))
-                        partial_count += 1
                     else:
-                        epd.display(epd.getbuffer(img))
-                        partial_count = 0 #change later for partial refresh lol
+                        epd.displayPartial(epd.getbuffer(img))
                     last_display = img
 
 def sleepyBye():
