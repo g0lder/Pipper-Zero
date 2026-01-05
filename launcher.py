@@ -8,9 +8,15 @@ from waveshare_epd import epd2in13_V4
 # ------------------------
 # Config
 # ------------------------
-SCRIPTS_DIR = Path("/home/g0lder/pipper/scripts")
-IMAGES_DIR = Path("/home/g0lder/pipper/logos")
-FIFO_PATH = "/home/g0lder/pipper/pisugar_fifo"
+SELF_PATH=os.path.dirname(os.path.abspath(__file__))
+SCRIPTS_DIR = Path(f"{SELF_PATH}/scripts")
+IMAGES_DIR = Path(f"{SELF_PATH}/logos")
+FIFO_PATH = f"{SELF_PATH}/pisugar_fifo"
+try:
+    os.remove(FIFO_PATH)
+except Exception:
+    pass
+os.mkfifo(FIFO_PATH,0o666)
 
 VISIBLE_ITEMS = 3
 CENTER_SCALE = 1.0
@@ -115,8 +121,9 @@ def main():
                     selected_index += 1
                     changed = True
             elif cmd == "triggerThree":
-                os.system(f"bash {scripts[selected_index]} &")
-
+                 epd.Clear()
+                 epd.sleep()
+                 os.execlp("bash", "bash", scripts[selected_index])
             if changed:
                 img = draw_carousel(epd, scripts, selected_index)
                 if img != last_display:
