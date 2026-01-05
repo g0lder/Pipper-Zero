@@ -9,7 +9,8 @@ I am using a Raspberry Pi 02W, Waveshare V4, and Pisugar 3. More scripts may req
 2. Install waveshare stuff. I cloned the repo [from Waveshare](https://github.com/waveshareteam/e-Paper) and ran the install script for python.  
 3. Copy all the files and change paths to suit your needs.
 4. `mkfifo` where you want the fifo pipe.
-5. Run the launcher?  
+5. Make the button shells `echo triggerOne > /path/to/pisugar_fifo` for click, `triggerTwo` for double click, and `triggerThree` for long clicks.
+6. Run the launcher?  
 
 ## Make an app
 1. Create the SH file in the scripts directory.
