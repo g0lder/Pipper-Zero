@@ -2,7 +2,7 @@
 import os
 import time
 from pathlib import Path
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from waveshare_epd import epd2in13_V4
 
 # ------------------------
@@ -31,20 +31,51 @@ def load_scripts():
     scripts = [f for f in SCRIPTS_DIR.iterdir() if f.is_file() and f.suffix == ".sh"]
     return sorted(scripts)
 
-MAX_LOGO_SIZE = (100, 100)  # maximum width/height on screen
+MAX_LOGO_SIZE = (50,50)
 
 def load_logo(script_name):
+    # Start with placeholder or load logo
     logo_file = IMAGES_DIR / f"{script_name}.bmp"
     if logo_file.exists():
-        img = Image.open(logo_file)
+        img = Image.open(logo_file).convert("1")
     else:
-        img = Image.new("1", (100, 100), 1)
+        img = Image.new("1", (MAX_LOGO_SIZE[0], MAX_LOGO_SIZE[1]), 1)
         draw = ImageDraw.Draw(img)
-        draw.rounded_rectangle([0,0,99,99], radius=20, fill=0)
+        draw.rounded_rectangle([0,0,MAX_LOGO_SIZE[0]-1,MAX_LOGO_SIZE[1]-1], radius=20, fill=0)
 
-    # scale down to fit max width/height
+    # Resize logo to fit max size while preserving aspect ratio
     img.thumbnail(MAX_LOGO_SIZE, Image.LANCZOS)
+
+    # Draw text on top
+    draw = ImageDraw.Draw(img)
+
+    # Start with max font size and shrink until text fits
+    font = ImageFont.truetype(os.path.join(SELF_PATH, 'scripts', 'resources', 'text', 'Font.ttf'), 9)
+    bbox = draw.textbbox((0, 0), script_name, font=font)
+    w, h = bbox[2]-bbox[0], bbox[3]-bbox[1]
+
+    # Center and draw text on a white background
+    padding = 2  # small padding around text
+    text_x = (img.width - w) / 2
+    text_y = img.height - h - padding - 1
+
+    # Draw white rectangle behind text
+    #draw.rectangle(
+    #    [text_x - padding, text_y - padding, text_x + w + padding, text_y + h + padding],
+    #    fill=255  # white background
+    #)
+
+    draw.rectangle(
+        [0, text_y - padding, 50, text_y + h + padding],
+        fill=255
+    )
+
+    # Draw the text itself
+    draw.text((text_x, text_y), script_name, fill=0, font=font)
+
     return img
+
+
 
 GRID_COLS = 3
 GRID_ROWS = 2
