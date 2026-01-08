@@ -190,6 +190,7 @@ def main():
             elif cmd == "triggerThree":
                  epd.Clear()
                  epd.sleep()
+                 time.sleep(5)
                  os.execlp("bash", "bash", scripts[selected_index])
             if changed:
                 img = draw_grid(epd, scripts, selected_index)

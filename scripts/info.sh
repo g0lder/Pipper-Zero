@@ -17,4 +17,4 @@ sudo $SCRIPT_PATH/python/text.py  \
 
 sleep 15
 
-sudo $SCRIPT_PATH/../launcher.py
+sudo "$SCRIPT_PATH/../launcher.py"
