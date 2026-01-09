@@ -22,7 +22,7 @@ VISIBLE_ITEMS = 5
 CENTER_SCALE = 1.0
 SIDE_SCALE = 0.6
 SQUIRCLE_SIZE = (100, 100)
-IDLE_TIMEOUT = 30  # seconds
+IDLE_TIMEOUT = 45  # seconds
 
 # ------------------------
 # Helper functions
@@ -153,6 +153,7 @@ def main():
     time.sleep(0.2)
     epd.Clear()
     epd.display(epd.getbuffer(img))
+    idle_time = 0
     # open FIFO
     with open(FIFO_PATH, "r") as fifo:
         while True:
@@ -161,6 +162,8 @@ def main():
                 epd.sleep()
                 print("Display sleeping due to inactivity.")
                 idle = True
+                if time.time() - last_activity > IDLE_TIMEOUT+1:
+                    os.execlp("bash","bash",f"{SCRIPTS_DIR}/resources/showerThoughts.sh")
 
             cmd = fifo.readline().strip()
             if not cmd:
@@ -170,13 +173,13 @@ def main():
             last_activity = time.time()
             changed = False
 
-
             if cmd and idle==True:
                 epd.init()
                 img = draw_grid(epd, scripts, selected_index)
                 epd.Clear()
                 epd.display(epd.getbuffer(img))
                 idle=False
+                idle_time = 0
             if cmd == "triggerOne":
                 if selected_index < len(scripts) -1:
                     old_index=selected_index
@@ -211,5 +214,6 @@ def sleepyBye():
 if __name__ == "__main__":
     try:
         main()
-    finally:
+    except Exception as e:
+        print(e)
         sleepyBye()
